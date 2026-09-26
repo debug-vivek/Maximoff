@@ -1,0 +1,8 @@
+{
+  "name": "Maximoff - Autonomous AI Assistant Platform",
+  "description": "Build the Intelligence of Tomorrow. The ultimate platform for crafting holographic and autonomous AI assistants with neural voice, spatial vision, long-term memory, and hardware automation.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

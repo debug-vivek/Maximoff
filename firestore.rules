@@ -1,0 +1,107 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Hardened Helper Functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Validation Blueprint for ResearchDossier
+    function isValidResearchDossier(data) {
+      return data.keys().hasAll(['id', 'query', 'summary', 'authorId', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'query', 'summary', 'keyFacts', 'sources', 'searchQueries', 'category', 'authorId', 'authorEmail', 'createdAt']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.query is string && data.query.size() > 0 && data.query.size() <= 500 &&
+        data.summary is string && data.summary.size() <= 10000 &&
+        data.authorId is string && data.authorId == request.auth.uid &&
+        data.createdAt is string && data.createdAt.size() <= 64 &&
+        (!('authorEmail' in data) || (data.authorEmail is string && data.authorEmail.size() <= 128)) &&
+        (!('category' in data) || (data.category is string && data.category.size() <= 64)) &&
+        (!('keyFacts' in data) || (data.keyFacts is list && data.keyFacts.size() <= 50)) &&
+        (!('sources' in data) || (data.sources is list && data.sources.size() <= 50)) &&
+        (!('searchQueries' in data) || (data.searchQueries is list && data.searchQueries.size() <= 20));
+    }
+
+    // Validation Blueprint for DeviceFile
+    function isValidDeviceFile(data) {
+      return data.keys().hasAll(['id', 'name', 'type', 'device', 'path', 'authorId', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'name', 'type', 'extension', 'device', 'size', 'path', 'lastModified', 'authorId', 'createdAt']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 256 &&
+        data.type in ['file', 'folder'] &&
+        data.device in ['Workstation', 'Mobile', 'Cloud Enclave', 'Edge Server'] &&
+        data.path is string && data.path.size() > 0 && data.path.size() <= 512 &&
+        data.authorId is string && data.authorId == request.auth.uid &&
+        data.createdAt is string && data.createdAt.size() <= 64 &&
+        (!('extension' in data) || (data.extension is string && data.extension.size() <= 32)) &&
+        (!('size' in data) || (data.size is string && data.size.size() <= 64)) &&
+        (!('lastModified' in data) || (data.lastModified is string && data.lastModified.size() <= 64));
+    }
+
+    // Validation Blueprint for SecurityAudit
+    function isValidSecurityAudit(data) {
+      return data.keys().hasAll(['id', 'eventType', 'details', 'operatorId', 'timestamp']) &&
+        data.keys().hasOnly(['id', 'eventType', 'details', 'operatorId', 'timestamp']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.eventType in ['LOCKDOWN_ENGAGED', 'UNLOCK_ATTEMPT', 'UNLOCK_SUCCESS', 'GOOGLE_RESEARCH_SYNC', 'DATABASE_VERIFIED'] &&
+        data.details is string && data.details.size() <= 1000 &&
+        data.operatorId is string && data.operatorId == request.auth.uid &&
+        data.timestamp is string && data.timestamp.size() <= 64;
+    }
+
+    // Test collection for boot connectivity check
+    match /test/{docId} {
+      allow get: if true;
+      allow create, update: if isSignedIn() && isValidId(docId);
+    }
+
+    // Research Dossiers collection
+    match /research_dossiers/{dossierId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && isValidId(dossierId) && isValidResearchDossier(incoming());
+      allow update: if isSignedIn() && isValidId(dossierId) && isValidResearchDossier(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['summary', 'keyFacts', 'sources', 'category']);
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+    }
+
+    // Device Files collection
+    match /device_files/{fileId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && isValidId(fileId) && isValidDeviceFile(incoming());
+      allow update: if isSignedIn() && isValidId(fileId) && isValidDeviceFile(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'type', 'extension', 'device', 'size', 'path', 'lastModified']);
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+    }
+
+    // Security Audit logs (Immutable)
+    match /security_audits/{auditId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(auditId) && isValidSecurityAudit(incoming());
+      allow update, delete: if false;
+    }
+  }
+}

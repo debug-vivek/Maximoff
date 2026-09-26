@@ -1,0 +1,175 @@
+{
+  "entities": {
+    "ResearchDossier": {
+      "title": "Research Dossier",
+      "description": "Comprehensive intelligence dossier compiled via Google Search research across web sources and stored in the database.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique dossier identifier."
+        },
+        "query": {
+          "type": "string",
+          "description": "The research query or topic researched across Google.",
+          "maxLength": 500
+        },
+        "summary": {
+          "type": "string",
+          "description": "Executive summary synthesized from Google search results.",
+          "maxLength": 5000
+        },
+        "keyFacts": {
+          "type": "array",
+          "description": "Key verified factual bullet points."
+        },
+        "sources": {
+          "type": "array",
+          "description": "Grounding web sources with URLs and titles."
+        },
+        "searchQueries": {
+          "type": "array",
+          "description": "The underlying Google search queries executed."
+        },
+        "category": {
+          "type": "string",
+          "description": "Topic categorization e.g. Quantum, Science, Tech, General, Security.",
+          "maxLength": 64
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the operator who conducted the research.",
+          "maxLength": 128
+        },
+        "authorEmail": {
+          "type": "string",
+          "description": "Email of the operator.",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "query", "summary", "authorId", "createdAt"]
+    },
+    "DeviceFile": {
+      "title": "Device File",
+      "description": "Indexed file or folder metadata synchronized across connected devices.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique record identifier.",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "File or folder name.",
+          "maxLength": 256
+        },
+        "type": {
+          "type": "string",
+          "description": "Whether this is a file or folder.",
+          "enum": ["file", "folder"]
+        },
+        "extension": {
+          "type": "string",
+          "description": "File extension if applicable.",
+          "maxLength": 32
+        },
+        "device": {
+          "type": "string",
+          "description": "Target device name.",
+          "enum": ["Workstation", "Mobile", "Cloud Enclave", "Edge Server"]
+        },
+        "size": {
+          "type": "string",
+          "description": "Human-readable file size.",
+          "maxLength": 64
+        },
+        "path": {
+          "type": "string",
+          "description": "Device system path or URI.",
+          "maxLength": 512
+        },
+        "lastModified": {
+          "type": "string",
+          "description": "Last modified timestamp string.",
+          "maxLength": 64
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the operator.",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "name", "type", "device", "path", "authorId", "createdAt"]
+    },
+    "SecurityAudit": {
+      "title": "Security Audit Log",
+      "description": "Audit record of lockdown engagements, unlock attempts, and database queries.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Log entry identifier.",
+          "maxLength": 128
+        },
+        "eventType": {
+          "type": "string",
+          "description": "Type of security event.",
+          "enum": ["LOCKDOWN_ENGAGED", "UNLOCK_ATTEMPT", "UNLOCK_SUCCESS", "GOOGLE_RESEARCH_SYNC", "DATABASE_VERIFIED"]
+        },
+        "details": {
+          "type": "string",
+          "description": "Details of the event.",
+          "maxLength": 1000
+        },
+        "operatorId": {
+          "type": "string",
+          "description": "UID of the operator triggering the event.",
+          "maxLength": 128
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO timestamp string.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "eventType", "details", "operatorId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/research_dossiers/{dossierId}": {
+      "schema": {
+        "$ref": "#/entities/ResearchDossier"
+      },
+      "description": "Collection of all Google Search research findings and answers persisted in the database."
+    },
+    "/device_files/{fileId}": {
+      "schema": {
+        "$ref": "#/entities/DeviceFile"
+      },
+      "description": "Collection of device files and folders cataloged across devices."
+    },
+    "/security_audits/{auditId}": {
+      "schema": {
+        "$ref": "#/entities/SecurityAudit"
+      },
+      "description": "Collection of audit records for security and lockdown operations."
+    },
+    "/test/{docId}": {
+      "schema": {
+        "$ref": "#/entities/SecurityAudit"
+      },
+      "description": "Connection test doc for verifying Firestore connectivity."
+    }
+  }
+}
